@@ -1,0 +1,42 @@
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { User } from './users/schemas/user.schema';
+import { Response } from 'express';
+
+export interface TokenPayLoad {
+  userId: string;
+}
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService
+  ) {}
+
+  async login(user: User, response: Response) {
+    const tokenPayLoad: TokenPayLoad = {
+      userId: user._id.toHexString()
+    };
+
+    const expires = new Date();
+    expires.setSeconds(
+      expires.getSeconds() + this.configService.get('JWT_EXPIRATION')
+    );
+
+    const token = this.jwtService.sign(tokenPayLoad);
+
+    response.cookie('Authentication', token, {
+      httpOnly: true,
+      expires
+    });
+  }
+
+  logout(response: Response) {
+    response.cookie('Authentication', '', {
+      httpOnly: true,
+      expires: new Date()
+    });
+  }  
+}
